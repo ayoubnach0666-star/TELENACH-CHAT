@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [isProfilePanelOpen, setIsProfilePanelOpen] = useState(false);
   const [activeStoryUser, setActiveStoryUser] = useState<User | null>(null);
   const [allChats, setAllChats] = useState<Chat[]>(CHATS);
+  const [allRooms, setAllRooms] = useState<VoiceRoom[]>(VOICE_ROOMS);
   const [toast, setToast] = useState<string | null>(null);
 
   const touchStartX = useRef<number | null>(null);
@@ -93,6 +94,20 @@ const App: React.FC = () => {
     setToast("Account deleted. Farewell.");
   };
 
+  const handleUpdateProfile = (updates: Partial<User>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('telenach_current_session', JSON.stringify(updatedUser));
+    
+    // Update in all users list too
+    const storedUsers = JSON.parse(localStorage.getItem('telenach_users') || '[]');
+    const updatedUsers = storedUsers.map((u: any) => u.id === user.id ? { ...u, ...updates } : u);
+    localStorage.setItem('telenach_users', JSON.stringify(updatedUsers));
+    
+    setToast("Profile updated");
+  };
+
   const handleNavigate = (screen: Screen) => {
     setCurrentScreen(screen);
     setActiveChat(null);
@@ -108,6 +123,19 @@ const App: React.FC = () => {
   const handleRoomClick = (room: VoiceRoom) => {
     setActiveRoom(room);
     setCurrentScreen('insideRoom');
+  };
+
+  const handleCreateRoom = (name: string, isPrivate: boolean) => {
+    if (!user) return;
+    const newRoom: VoiceRoom = {
+      id: `v_${Date.now()}`,
+      name: name,
+      participants: [user],
+      isLive: true,
+      isPrivate: isPrivate
+    };
+    setAllRooms([newRoom, ...allRooms]);
+    setToast("Voice room created");
   };
 
   const handleCreateGroup = (name: string, privacy: GroupPrivacy) => {
@@ -199,7 +227,7 @@ const App: React.FC = () => {
         return (
           <ChatList 
             chats={allChats} 
-            activeVoiceRooms={VOICE_ROOMS} 
+            activeVoiceRooms={allRooms} 
             onChatClick={handleChatClick}
             onVoiceRoomPillClick={() => setCurrentScreen('voiceRooms')}
             onStoryClick={setActiveStoryUser}
@@ -234,7 +262,7 @@ const App: React.FC = () => {
       case 'voiceRooms':
         return (
           <VoiceRoomList 
-            rooms={VOICE_ROOMS} 
+            rooms={allRooms} 
             onRoomClick={handleRoomClick}
             onBack={() => setCurrentScreen('messages')}
           />
@@ -249,11 +277,18 @@ const App: React.FC = () => {
           />
         );
       case 'profile':
-        return <Profile user={user} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} />;
+        return (
+          <Profile 
+            user={user} 
+            onLogout={handleLogout} 
+            onDeleteAccount={handleDeleteAccount} 
+            onUpdateProfile={handleUpdateProfile}
+          />
+        );
       case 'settings':
         return <Settings onBack={() => setCurrentScreen('messages')} />;
       default:
-        return <ChatList chats={allChats} activeVoiceRooms={VOICE_ROOMS} onChatClick={handleChatClick} onVoiceRoomPillClick={() => setCurrentScreen('voiceRooms')} onStoryClick={setActiveStoryUser} onCreateGroupShortcut={() => setIsPlusModalOpen(true)} />;
+        return <ChatList chats={allChats} activeVoiceRooms={allRooms} onChatClick={handleChatClick} onVoiceRoomPillClick={() => setCurrentScreen('voiceRooms')} onStoryClick={setActiveStoryUser} onCreateGroupShortcut={() => setIsPlusModalOpen(true)} />;
     }
   };
 
@@ -297,10 +332,7 @@ const App: React.FC = () => {
         <CreateModal 
           isOpen={isPlusModalOpen} 
           onClose={() => setIsPlusModalOpen(false)}
-          onCreateVoiceRoom={() => {
-            setIsPlusModalOpen(false);
-            setCurrentScreen('voiceRooms');
-          }}
+          onCreateVoiceRoom={handleCreateRoom}
           onCreateGroup={handleCreateGroup}
           onSearchGroup={() => setCurrentScreen('groupSearch')}
         />

@@ -1,24 +1,107 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User } from '../types';
 
 interface ProfileProps {
   user: User;
   onLogout?: () => void;
   onDeleteAccount?: () => void;
+  onUpdateProfile?: (updates: Partial<User>) => void;
 }
 
-export const Profile: React.FC<ProfileProps> = ({ user, onLogout, onDeleteAccount }) => {
+export const Profile: React.FC<ProfileProps> = ({ user, onLogout, onDeleteAccount, onUpdateProfile }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [tempName, setTempName] = useState(user.displayName);
+  const [tempBio, setTempBio] = useState(user.bio || 'Designing silence.');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSaveName = () => {
+    if (tempName.trim() && onUpdateProfile) {
+      onUpdateProfile({ displayName: tempName.trim() });
+      setIsEditingName(false);
+    }
+  };
+
+  const handleSaveBio = () => {
+    if (onUpdateProfile) {
+      onUpdateProfile({ bio: tempBio.trim() });
+      setIsEditingBio(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onUpdateProfile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onUpdateProfile({ avatar: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-10 relative">
-      <div className="flex flex-col items-center mb-10">
-        <div className="w-32 h-32 rounded-[40px] overflow-hidden border-2 border-white/10 mb-6 p-1">
-          <img src={user.avatar} alt="Profile" className="w-full h-full object-cover rounded-[36px]" />
+      <div className="flex flex-col items-center mb-10 animate-in fade-in duration-700">
+        <div 
+          onClick={() => fileInputRef.current?.click()}
+          className="relative group cursor-pointer"
+        >
+          <div className="w-32 h-32 rounded-[40px] overflow-hidden border-2 border-white/10 mb-6 p-1 transition-all group-hover:border-orange-500/50">
+            <img src={user.avatar} alt="Profile" className="w-full h-full object-cover rounded-[36px]" />
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-[40px] mb-6">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept="image/*" 
+          />
         </div>
-        <h2 className="text-2xl font-bold">{user.displayName}</h2>
-        <p className="text-orange-500 font-medium">{user.username}</p>
+
+        <div className="w-full text-center px-4">
+          {isEditingName ? (
+            <div className="flex flex-col items-center gap-3 animate-in slide-in-from-top-2">
+              <input
+                type="text"
+                value={tempName}
+                autoFocus
+                onChange={(e) => setTempName(e.target.value)}
+                className="w-full max-w-[200px] bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xl font-bold text-center focus:outline-none focus:border-orange-500/50"
+              />
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleSaveName}
+                  className="px-4 py-1.5 bg-orange-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-orange-600/20"
+                >
+                  Save
+                </button>
+                <button 
+                  onClick={() => { setIsEditingName(false); setTempName(user.displayName); }}
+                  className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-[10px] font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 group">
+              <h2 className="text-2xl font-bold">{user.displayName}</h2>
+              <button 
+                onClick={() => setIsEditingName(true)}
+                className="p-1.5 rounded-lg bg-white/5 text-white/20 opacity-0 group-hover:opacity-100 transition-all hover:text-orange-500 hover:bg-white/10"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+              </button>
+            </div>
+          )}
+          <p className="text-orange-500 font-medium mt-1">{user.username}</p>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -27,20 +110,56 @@ export const Profile: React.FC<ProfileProps> = ({ user, onLogout, onDeleteAccoun
             <span className="text-white/40">Birth Year</span>
             <span className="font-semibold">{user.birthYear}</span>
           </div>
-          <div className="flex justify-between items-center text-sm border-t border-white/5 pt-4">
-            <span className="text-white/40">Bio</span>
-            <span className="font-semibold text-right">Designing silence.</span>
+          <div className="flex flex-col gap-2 border-t border-white/5 pt-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-white/40">Bio</span>
+              {!isEditingBio && (
+                <button 
+                  onClick={() => setIsEditingBio(true)}
+                  className="text-orange-500/60 text-[10px] font-bold uppercase tracking-widest hover:text-orange-500 transition-colors"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {isEditingBio ? (
+              <div className="flex flex-col gap-3 animate-in slide-in-from-top-2">
+                <textarea
+                  value={tempBio}
+                  autoFocus
+                  onChange={(e) => setTempBio(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-orange-500/50 resize-none h-24"
+                  placeholder="Tell us about yourself..."
+                />
+                <div className="flex gap-2 justify-end">
+                  <button 
+                    onClick={() => { setIsEditingBio(false); setTempBio(user.bio || 'Designing silence.'); }}
+                    className="px-4 py-2 bg-white/5 text-white/40 rounded-lg text-[10px] font-bold uppercase tracking-widest"
+                  >
+                    Cancel
+                </button>
+                <button 
+                  onClick={handleSaveBio}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest"
+                >
+                  Save
+                </button>
+                </div>
+              </div>
+            ) : (
+              <span className="font-semibold text-sm text-right leading-relaxed opacity-90">{user.bio || 'Designing silence.'}</span>
+            )}
           </div>
         </div>
 
-        <button className="w-full glass-card rounded-3xl p-6 flex items-center justify-between text-white/90 hover:bg-white/5 transition-colors">
+        <button className="w-full glass-card rounded-3xl p-6 flex items-center justify-between text-white/90 hover:bg-white/5 transition-colors group">
           <span className="font-medium">Account Security</span>
-          <svg className="w-4 h-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+          <svg className="w-4 h-4 text-white/20 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
         </button>
 
-        <button className="w-full glass-card rounded-3xl p-6 flex items-center justify-between text-white/90 hover:bg-white/5 transition-colors">
+        <button className="w-full glass-card rounded-3xl p-6 flex items-center justify-between text-white/90 hover:bg-white/5 transition-colors group">
           <span className="font-medium">Data Privacy</span>
-          <svg className="w-4 h-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+          <svg className="w-4 h-4 text-white/20 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
         </button>
 
         <div className="pt-8 space-y-3">

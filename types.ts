@@ -17,6 +17,7 @@ export interface User {
   username: string;
   birthYear: string;
   avatar: string;
+  bio?: string;
   password?: string; // Stored as a hash
   stories?: Story[];
 }
@@ -54,6 +55,7 @@ export interface VoiceRoom {
   name: string;
   participants: User[];
   isLive: boolean;
+  isPrivate?: boolean;
 }
 
 export type Screen = 'onboarding' | 'messages' | 'chat' | 'voiceRooms' | 'insideRoom' | 'profile' | 'settings' | 'groupInfo' | 'groupSearch';

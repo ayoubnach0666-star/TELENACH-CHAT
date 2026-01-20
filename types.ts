@@ -17,6 +17,7 @@ export interface User {
   username: string;
   birthYear: string;
   avatar: string;
+  password?: string; // Stored as a hash
   stories?: Story[];
 }
 

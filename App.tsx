@@ -33,9 +33,9 @@ const App: React.FC = () => {
 
   const touchStartX = useRef<number | null>(null);
 
-  // Check for stored user
+  // Check for stored current session
   useEffect(() => {
-    const stored = localStorage.getItem('telenach_user');
+    const stored = localStorage.getItem('telenach_current_session');
     if (stored) {
       setUser(JSON.parse(stored));
       setCurrentScreen('messages');
@@ -69,8 +69,28 @@ const App: React.FC = () => {
 
   const handleOnboardingComplete = (newUser: User) => {
     setUser(newUser);
-    localStorage.setItem('telenach_user', JSON.stringify(newUser));
+    localStorage.setItem('telenach_current_session', JSON.stringify(newUser));
     setCurrentScreen('messages');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('telenach_current_session');
+    setUser(null);
+    setCurrentScreen('onboarding');
+    setIsProfilePanelOpen(false);
+    setToast("Logged out successfully");
+  };
+
+  const handleDeleteAccount = () => {
+    if (!user) return;
+    const storedUsers = JSON.parse(localStorage.getItem('telenach_users') || '[]');
+    const filteredUsers = storedUsers.filter((u: any) => u.id !== user.id);
+    localStorage.setItem('telenach_users', JSON.stringify(filteredUsers));
+    localStorage.removeItem('telenach_current_session');
+    setUser(null);
+    setCurrentScreen('onboarding');
+    setIsProfilePanelOpen(false);
+    setToast("Account deleted. Farewell.");
   };
 
   const handleNavigate = (screen: Screen) => {
@@ -229,7 +249,7 @@ const App: React.FC = () => {
           />
         );
       case 'profile':
-        return <Profile user={user} />;
+        return <Profile user={user} onLogout={handleLogout} onDeleteAccount={handleDeleteAccount} />;
       case 'settings':
         return <Settings onBack={() => setCurrentScreen('messages')} />;
       default:

@@ -2,6 +2,7 @@
   "name": "TELENACH",
   "description": "A premium, mobile-first chat application focused on simplicity, comfort, and elegant human interaction with a unique dark LED aesthetic.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ]
 }
